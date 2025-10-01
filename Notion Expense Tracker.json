@@ -1,0 +1,530 @@
+{
+  "name": "Notion Expense Tracker",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json[\"text\"] || $json.message?.text || $json.content || \"\" }}",
+        "options": {
+          "systemMessage": "=Eres un extractor de información financiera.\n\nDevuelve EXCLUSIVAMENTE un JSON válido en UNA sola línea (sin saltos de línea, sin comillas escapadas), con este esquema exacto:\n{\n  \"fecha\": \"YYYY-MM-DD\",\n  \"monto\": 0,\n  \"concepto\": \"texto\",\n  \"categoria\": \"texto\"\n}\n\n\nOTRAS REGLAS:\n- \"monto\": número decimal con punto (ej: 120.50), sin símbolos de moneda.\n- \"concepto\": nombre del comercio o descripción breve.\n- \"categoria\": exactamente una de {Comida, Transporte, Servicios, Entretenimiento, Salud, Otros}.\n- Nada de explicaciones, ni texto extra, ni JSON escapado.\n\nTexto/Contenido a analizar: {{ $json.message?.text || $json.content || \"\" }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        912,
+        -144
+      ],
+      "id": "e47da5b8-c38e-410b-bb48-65eda7a8a05c",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of $input.all()) {\n  try {\n    // Convierte el string del AI Agent en objeto JSON limpio\n    const clean = JSON.parse(item.json.output);\n\n    // Normaliza la fecha siempre a YYYY-MM-DD\n    if (clean.fecha) {\n      const d = new Date(clean.fecha);\n      if (!isNaN(d)) {\n        // Fuerza al formato correcto\n        const year = d.getFullYear();\n        const month = String(d.getMonth() + 1).padStart(2, \"0\");\n        const day = String(d.getDate()).padStart(2, \"0\");\n        clean.fecha = `${year}-${month}-${day}`;\n      }\n    } else {\n      // Si no hay fecha, usa hoy\n      const now = new Date();\n      const year = now.getFullYear();\n      const month = String(now.getMonth() + 1).padStart(2, \"0\");\n      const day = String(now.getDate()).padStart(2, \"0\");\n      clean.fecha = `${year}-${month}-${day}`;\n    }\n\n    // Reemplaza el json del item con el objeto ya parseado y corregido\n    item.json = clean;\n  } catch (e) {\n    item.json.error = \"Invalid JSON: \" + e.message;\n  }\n}\n\nreturn $input.all();\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1264,
+        -144
+      ],
+      "id": "7d7b4b6b-2ce0-4e69-ae7d-e642de42d79f",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=Your expense {{ $json.name }} for {{ $('Code in JavaScript').item.json.monto }} has been properly saved in Notion",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1936,
+        -144
+      ],
+      "id": "f224d4cc-e35b-4517-8571-d6eca341fcb6",
+      "name": "Send a text message",
+      "webhookId": "4e73d0a6-957e-449b-8771-89b2adca9cc4",
+      "credentials": {
+        "telegramApi": {
+          "id": "w7iJ2r4Xdcd248AF",
+          "name": "Notion_BotFather"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "<YOUR_NOTION_DATABASE_ID>",
+          "mode": "list",
+          "cachedResultName": "ET - Expenses",
+          "cachedResultUrl": "<YOUR_NOTION_DATABASE_URL>"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Amount|number",
+              "numberValue": "={{ $('Code in JavaScript').item.json.monto }}"
+            },
+            {
+              "key": "Date|date",
+              "includeTime": false,
+              "date": "={{ $json.currentDate }}"
+            },
+            {
+              "key": "Name|title",
+              "title": "={{ $('Code in JavaScript').item.json.concepto }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        1712,
+        -144
+      ],
+      "id": "06b96c0b-aa7a-4621-b1de-b9463be54c37",
+      "name": "Create a database page",
+      "credentials": {
+        "notionApi": {
+          "id": "3K4c1PAHUHu9AZMj",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json[\"message\"][\"text\"]}}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "7ff5759f-8d50-444b-9b5d-6c4985e1f8c9"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Text Input"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a76c0bc7-24a5-4e43-a05a-7b370612cee9",
+                    "leftValue": "={{$json[\"message\"][\"photo\"]}}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "array",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Photo Input"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "5ec0aa3b-011a-44f9-ba77-cd8c851c26ce",
+                    "leftValue": "={{ $json.message.voice }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "object",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Audio Input"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        16,
+        -136
+      ],
+      "id": "79d97114-35fd-4367-8320-8e3dd2d44961",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {
+          "download": true
+        }
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -208,
+        -120
+      ],
+      "id": "e9a441be-ab7a-4cab-97d4-f919c07368e2",
+      "name": "Telegram Trigger",
+      "webhookId": "63b40a9b-19fe-4925-83d4-c440c690ad7b",
+      "credentials": {
+        "telegramApi": {
+          "id": "w7iJ2r4Xdcd248AF",
+          "name": "Notion_BotFather"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "text": "What's in this image? ",
+        "inputType": "base64",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        688,
+        -144
+      ],
+      "id": "ea8aa15a-9b26-4287-98e4-9b44615e4700",
+      "name": "Analyze image",
+      "credentials": {
+        "openAiApi": {
+          "id": "5zBPvwcnaMT3ue0d",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice ? $json.message.voice.file_id : $json.message.photo[$json.message.photo.length - 1].file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        -48
+      ],
+      "id": "5b25a70d-a081-4784-ae46-753732ba285a",
+      "name": "Get a file",
+      "webhookId": "c3239aec-e813-40ab-895e-de66269ec4f3",
+      "credentials": {
+        "telegramApi": {
+          "id": "w7iJ2r4Xdcd248AF",
+          "name": "Notion_BotFather"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-4-20250514",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 4"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        984,
+        80
+      ],
+      "id": "5a76726f-1931-42cd-935e-6b9bb4cdbf5d",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "rgneHFR38IGNSaxv",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        1488,
+        -144
+      ],
+      "id": "970a1390-fe55-44f2-a7fb-3d73730165aa",
+      "name": "Date & Time"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b3b25905-27ea-40b6-9b4e-3d21f9b9cc8d",
+              "leftValue": "={{$json.message?.photo}}",
+              "rightValue": ".jpg",
+              "operator": {
+                "type": "array",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "34ea5bb5-9181-4119-aec6-480dc79204ce",
+              "leftValue": "={{$json.message?.voice}}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        464,
+        -48
+      ],
+      "id": "b6a9f137-8fa5-4314-9a7c-b41096b1e615",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        688,
+        48
+      ],
+      "id": "b4cb81db-e87e-4e93-9218-48b70d2c97ba",
+      "name": "Transcribe a recording",
+      "credentials": {
+        "openAiApi": {
+          "id": "aD13DSWtZ3aEpAUl",
+          "name": "OpenAi account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Date & Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a database page": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get a file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze image": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a file": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time": {
+      "main": [
+        [
+          {
+            "node": "Create a database page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Analyze image",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Transcribe a recording",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe a recording": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a7d96e53-2b1d-4415-bad2-1c716dc30d49",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e4676f45306498db9deda9b100517e68d1b69740708ea0304151a3959d7b04a2"
+  },
+  "id": "METvFmx1SHBt2Jm9",
+  "tags": []
+}
