@@ -19,19 +19,19 @@ You can send a **text message**, a **photo of a receipt**, or a **voice note**, 
 
 ### Simple Text Expense
 
-![Simple text expense](./Simple_Message_Text.png)
+![Simple text expense](./assets/Simple_Message_Text.png)
 
 Send a quick message like "Groceries 24.95" and the workflow extracts the description, amount, and date automatically.
 
 ### Receipt Photo
 
-![Receipt photo](./Image_Invoice.png)
+![Receipt photo](./assets/Image_Invoice.png)
 
 Snap a picture of a receipt; the AI pulls totals and merchant details before the entry hits Notion.
 
 ### Voice Note Expense
 
-![Voice note expense](./Voice_Note_Expense.png)
+![Voice note expense](./assets/Voice_Note_Expense.png)
 
 Record a short voice memo on the go; the transcription plus AI parsing turns it into structured data.
 
@@ -77,7 +77,7 @@ Record a short voice memo on the go; the transcription plus AI parsing turns it 
 1. **Set Up a Telegram Bot**  
    - Open [BotFather](https://t.me/BotFather) in Telegram, send `/newbot`, and follow the prompts to name your bot.  
    - Copy the access token BotFather returns so you can configure the Telegram Trigger node later.  
-   ![Creating a Telegram bot with BotFather](./Bot_Father.png)
+   ![Creating a Telegram bot with BotFather](./assets/Bot_Father.png)
 
 2. **Prepare Your Notion Database**  
    - Use your own Notion expense tracker template, browse Notion's expense tracker gallery at https://www.notion.com/templates/category/expense-tracker, or create one with fields for Date, Category, Amount, and Description.
@@ -86,7 +86,7 @@ Record a short voice memo on the go; the transcription plus AI parsing turns it 
    - [Install locally](https://docs.n8n.io/hosting/installation/) or use [n8n Cloud](https://n8n.io/cloud).
 
 4. **Import the Workflow**  
-   - Create a new workflow from scratch or use the provided JSON in n8n and configure the nodes as shown in the screenshot.
+   - Import `Notion Expense Tracker.json` into n8n—either paste the JSON into a new workflow with `Ctrl+C`/`Ctrl+V` or use *Import from File*—then confirm the nodes match the screenshots.
 
 5. **Configure the AI Nodes**  
    - Add your OpenAI/Anthropic API keys. (Feel free yo use any other LLM brain for the AI agent but open AI Wisper and ORC is required)
@@ -106,6 +106,3 @@ Record a short voice memo on the go; the transcription plus AI parsing turns it 
 
 ---
 
-## License
-
-This project is licensed under the MIT License.
